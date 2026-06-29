@@ -146,6 +146,7 @@
   <section id="v-set" class="hidden">
     <div class="card">
       <h2>⚙️ 設定</h2>
+      <div id="lineStatus" class="hint">LINE:未設定(本機模式)</div>
       <label>操作員(你的名字)</label><input id="sOp" placeholder="例 林宥廷">
       <label>隊伍/組別</label><input id="sTeam" placeholder="例 第3組">
       <label>預設區域</label>
@@ -178,6 +179,16 @@
   <button id="agreeBtn" onclick="acceptConsent()" disabled>同意並開始</button>
 </div></div>
 
+<!-- LINE login gate -->
+<div id="lineGate" class="modal hidden"><div class="card">
+  <h2>用 LINE 登入</h2>
+  <p style="font-size:14px;line-height:1.6">登入後會記錄是誰採樣,並可接收老師派工。你的 LINE 名稱會帶入「操作員」。</p>
+  <button id="lineLoginBtn" onclick="lineLogin()">用 LINE 登入</button>
+  <button class="sec" onclick="lineSkip()">略過(本機模式)</button>
+</div></div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" crossorigin="anonymous"></script>
+<script src="config.js"></script>
 <script src="vendor/jsQR.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>

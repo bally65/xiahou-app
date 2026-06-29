@@ -1,6 +1,6 @@
 /* service worker: offline app shell (cache-first for our files) */
-const CACHE = 'sbcv-pwa-v2';
-const ASSETS = ['./','./index.html','./app.js','./vendor/jsQR.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE = 'sbcv-pwa-v3';
+const ASSETS = ['./','./index.html','./app.js','./config.js','./vendor/jsQR.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install', e=>{ self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{})); });
 self.addEventListener('activate', e=>{ e.waitUntil(

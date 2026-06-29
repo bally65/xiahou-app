@@ -19,7 +19,7 @@ function recBlob(r){ const buf=r.img_buf||r.img; return (buf instanceof Blob)?bu
 /* ---------- settings ---------- */
 const S = JSON.parse(localStorage.getItem('sbcv_set')||'{}');
 function loadSettings(){ $('sOp').value=S.op||''; $('sTeam').value=S.team||''; $('sZone').value=S.zone||'漢寶';
-  $('sFrame').value=S.frame||30; $('frameCm').textContent=S.frame||30; refreshAssign(); }
+  $('sFrame').value=S.frame||30; $('frameCm').textContent=S.frame||30; refreshAssign(); lineStatusText(); }
 function saveSettings(){ S.op=$('sOp').value.trim(); S.team=$('sTeam').value.trim(); S.zone=$('sZone').value;
   S.frame=parseFloat($('sFrame').value)||30; localStorage.setItem('sbcv_set',JSON.stringify(S));
   $('frameCm').textContent=S.frame; refreshAssign(); toast('設定已儲存'); show('capture'); }
@@ -34,8 +34,35 @@ function showErr(m){ const e=$('errline'); if(m){e.textContent='⚠ '+m;e.classL
 /* ---------- consent ---------- */
 function checkConsent(){ if(localStorage.getItem(CONSENT_VER)) return;
   $('consent').classList.remove('hidden'); $('agree').onchange=e=>{$('agreeBtn').disabled=!e.target.checked;}; }
-function acceptConsent(){ localStorage.setItem(CONSENT_VER,new Date().toISOString()); $('consent').classList.add('hidden'); }
+function acceptConsent(){ localStorage.setItem(CONSENT_VER,new Date().toISOString()); $('consent').classList.add('hidden'); initLine(); }
 function reConsent(){ localStorage.removeItem(CONSENT_VER); checkConsent(); }
+
+/* ---------- LINE login (LIFF; optional, falls back to local mode) ---------- */
+let lineProfile = JSON.parse(localStorage.getItem('sbcv_line')||'null');
+function lineStatusText(){ const e=$('lineStatus'); if(!e)return; const cfg=window.SBCV_CONFIG||{};
+  if(!cfg.liffId){ e.innerHTML='LINE:未設定(本機模式)— 見 config.js'; return; }
+  if(lineProfile) e.innerHTML='LINE:已登入 '+lineProfile.displayName+' &nbsp;<a href="#" onclick="lineLogout();return false" style="color:#f4c87a">登出</a>';
+  else e.innerHTML='LINE:未登入 &nbsp;<a href="#" onclick="showLineGate();return false" style="color:#4FB3A6">登入</a>'; }
+function setLineUser(p){ lineProfile={userId:p.userId,displayName:p.displayName}; localStorage.setItem('sbcv_line',JSON.stringify(lineProfile));
+  if(!S.op){ S.op=p.displayName; localStorage.setItem('sbcv_set',JSON.stringify(S)); if($('sOp'))$('sOp').value=p.displayName; refreshAssign(); }
+  lineStatusText(); }
+function showLineGate(){ $('lineGate').classList.remove('hidden'); }
+function lineSkip(){ $('lineGate').classList.add('hidden'); }
+async function lineLogin(){ const cfg=window.SBCV_CONFIG||{};
+  if(!cfg.liffId){ alert('尚未設定 LIFF ID(見 config.js)'); return; }
+  try{ if(!window.liff) throw new Error('LIFF SDK 未載入(需連網)');
+    if(!liff.isLoggedIn()){ liff.login({redirectUri:location.href}); return; }
+    const p=await liff.getProfile(); setLineUser(p); $('lineGate').classList.add('hidden'); toast('LINE 已登入:'+p.displayName);
+  }catch(e){ alert('LINE 登入失敗:'+(e.message||e)); } }
+function lineLogout(){ try{ if(window.liff&&liff.isLoggedIn&&liff.isLoggedIn()) liff.logout(); }catch(_){}
+  lineProfile=null; localStorage.removeItem('sbcv_line'); lineStatusText(); toast('已登出 LINE'); }
+async function initLine(){ const cfg=window.SBCV_CONFIG||{}; lineStatusText();
+  if(!cfg.liffId) return;          // local mode (no LIFF configured)
+  if(!window.liff) return;         // SDK offline -> keep cached profile / local
+  try{ await liff.init({liffId:cfg.liffId});
+    if(liff.isLoggedIn()){ const p=await liff.getProfile(); setLineUser(p); }
+    else if(!lineProfile){ showLineGate(); }
+  }catch(_){ /* offline/init fail -> cached or local */ } }
 
 /* ---------- capture ---------- */
 let cap=null, curType='shrimp';
@@ -139,7 +166,7 @@ async function saveRecord(isZero){
     const n=t=>cap.points.filter(p=>p.type===t).length;
     const buf=await cap.blob.arrayBuffer();   // store ArrayBuffer (dodges iOS IDB Blob bug)
     const rec={ id:crypto.randomUUID(), ts:new Date().toISOString(),
-      op:S.op||'', team:S.team||'', zone:S.zone||'', cell, substrate:$('substrate').value,
+      op:S.op||'', operator_line_id:(lineProfile&&lineProfile.userId)||'', team:S.team||'', zone:S.zone||'', cell, substrate:$('substrate').value,
       frame_cm:parseFloat(S.frame||30), gsd_cm_px:cap.gsd||null, gps:cap.gps||null,
       corners_orig_px:cap.corners.map(([x,y])=>[Math.round(x*cap.factor),Math.round(y*cap.factor)]),
       openings:cap.points.map(p=>({x_px:Math.round(p.x),y_px:Math.round(p.y),type:p.type})),
@@ -205,4 +232,5 @@ addEventListener('online',net); addEventListener('offline',net);
 /* ---------- boot ---------- */
 (async ()=>{ try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(_){}
   try{ await openDB(); await purgeOld(); }catch(e){ showErr('資料庫開啟失敗:'+e); }
-  loadSettings(); net(); checkConsent(); show('capture'); })();
+  loadSettings(); net(); checkConsent(); show('capture');
+  if(localStorage.getItem(CONSENT_VER)) initLine(); })();
