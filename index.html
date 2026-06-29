@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B4F5C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="蝦猴採集">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>蝦猴採集</title>
+<style>
+  :root{ --deep:#0B4F5C; --teal:#1C7C8C; --sea:#4FB3A6; --sand:#E8D8B0; --ink:#0c2229;
+    --mist:#0e2a32; --card:#12343c; --line:#1d4c57; --warn:#E0794A; --good:#4FB3A6; --bad:#E0563C; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--ink);color:#EAF4F2;
+    font-family:-apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif;font-size:17px}
+  body{padding-bottom:env(safe-area-inset-bottom)}
+  header{position:sticky;top:0;background:var(--deep);padding:12px 14px;display:flex;align-items:center;
+    gap:10px;font-weight:700;font-size:18px;color:var(--sand);box-shadow:0 2px 8px #0006;z-index:5}
+  header .net{margin-left:auto;font-size:12px;font-weight:600}
+  main{padding:14px;max-width:760px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 14px}
+  h2{margin:.1em 0 .5em;font-size:18px;color:var(--sea)}
+  label{display:block;font-size:13px;color:#9fc3c0;margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);
+    background:#0c272e;color:#EAF4F2;font-size:16px}
+  button{font-size:17px;font-weight:700;border:none;border-radius:12px;padding:15px;width:100%;
+    background:var(--teal);color:#fff;margin-top:10px;min-height:54px}
+  button:active{filter:brightness(1.15)}
+  button.sec{background:#15414b;color:var(--sea);border:1px solid var(--line)}
+  button.zero{background:var(--good);color:#04201c;font-size:19px}
+  button.danger{background:#3a1b14;color:#f0a890;border:1px solid #6b2c1f}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700}
+  .ok{background:#10463c;color:#7fe9cf}.amber{background:#5a3d18;color:#f4c87a}.red{background:#5a241a;color:#f3a48f}
+  .muted{color:#7fa3a0;font-size:13px}
+  nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--deep);
+    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+  nav button{flex:1;background:none;color:#8fb6b3;border-radius:0;margin:0;font-size:13px;padding:9px 0 11px;min-height:0}
+  nav button.on{color:var(--sand)} nav button b{display:block;font-size:21px;line-height:1.1}
+  .hidden{display:none!important}
+  .stagewrap{position:relative;touch-action:none;background:#000;border-radius:12px;overflow:hidden}
+  canvas#stage{width:100%;display:block;touch-action:none}
+  .hint{font-size:13px;color:var(--sand);background:#0b343c;border:1px dashed var(--line);
+    border-radius:10px;padding:9px 11px;margin:8px 0}
+  .rec{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:10px 0}
+  .rec img{width:62px;height:62px;object-fit:cover;border-radius:8px;background:#000}
+  .rec .meta{flex:1;font-size:14px} .rec .meta small{color:#7fa3a0}
+  .toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#0b343c;
+    border:1px solid var(--teal);border-radius:12px;padding:11px 16px;display:flex;gap:14px;
+    align-items:center;z-index:20;box-shadow:0 6px 20px #0008;max-width:92vw}
+  .toast button{width:auto;margin:0;padding:8px 14px;min-height:0;background:var(--sea);color:#04201c}
+  .modal{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;
+    padding:18px;z-index:30}
+  .modal .card{max-width:520px;max-height:88vh;overflow:auto}
+  .typebtns{display:flex;gap:8px;margin-top:8px}.typebtns button{margin:0}
+  .typebtns button.shrimp{background:var(--sand);color:#3a2e08}
+  .typebtns button.other{background:#3a4a50;color:#cfe3e0}
+  .typebtns button.unsure{background:#4a3a18;color:#f4c87a}
+  .big{font-size:26px;font-weight:800;color:var(--sand)}
+  .cnt{font-size:30px;font-weight:800}
+</style>
+</head>
+<body>
+<header>🦐 蝦猴採集 <span class="net" id="net"></span></header>
+<main id="main">
+  <!-- ===== CAPTURE ===== -->
+  <section id="v-capture">
+    <div class="card">
+      <h2>① 拍攝樣方</h2>
+      <div class="muted" id="assignline">操作員/隊伍/格號 → 設定頁</div>
+      <label>格號(可掃 QR 自動帶,或手填)</label>
+      <input id="cell" placeholder="例 HB-F1">
+      <label>底質</label>
+      <select id="substrate"><option>泥</option><option>沙</option><option>泥沙</option></select>
+      <input type="file" id="file" accept="image/*" capture="environment" class="hidden">
+      <button onclick="document.getElementById('file').click()">📷 拍照(會自動記 GPS)</button>
+      <div class="hint">拍攝前:把方框放平、框內填滿畫面、垂直俯拍。先拍再走,別踩進框。</div>
+    </div>
+  </section>
+
+  <!-- ===== CONFIRM / SCALE / LABEL ===== -->
+  <section id="v-edit" class="hidden">
+    <div class="card">
+      <h2 id="editTitle">② 確認比例尺</h2>
+      <div id="stepScale">
+        <div class="hint">依序點方框的 <b>4 個角</b>(任意順序)→ 自動算比例尺(框內邊長 <span id="frameCm">30</span> cm)。掃到 QR 會自動帶格號。</div>
+        <div class="stagewrap"><canvas id="stage"></canvas></div>
+        <div class="row" style="margin-top:8px">
+          <span class="pill" id="gpsPill">GPS…</span>
+          <span class="pill" id="qrPill">QR…</span>
+          <span class="pill" id="gsdPill">GSD —</span>
+        </div>
+        <button class="sec" onclick="resetCorners()">↺ 重點角</button>
+        <button id="toLabelBtn" onclick="goLabel()" disabled>下一步:標註洞口 →</button>
+      </div>
+      <div id="stepLabel" class="hidden">
+        <div class="hint">放大後,<b>點每一個蝦猴洞</b>。先選下方類型,再點圖。點錯點該點可刪。</div>
+        <div class="typebtns">
+          <button class="shrimp" onclick="setType('shrimp')" id="tShrimp">蝦猴 ●</button>
+          <button class="other" onclick="setType('other')" id="tOther">其他</button>
+          <button class="unsure" onclick="setType('unsure')" id="tUnsure">不確定</button>
+        </div>
+        <div class="stagewrap" style="margin-top:8px"><canvas id="stage2"></canvas></div>
+        <div class="row" style="margin-top:8px">
+          <div>蝦猴 <span class="cnt" id="cShrimp">0</span></div>
+          <div>其他 <span class="cnt" id="cOther">0</span></div>
+          <div>不確定 <span class="cnt" id="cUnsure">0</span></div>
+        </div>
+        <label>備註</label><textarea id="notes" rows="2" placeholder="天氣、異常…"></textarea>
+        <button class="zero" onclick="saveRecord(true)">✓ 此格 0 蝦猴,存證完成</button>
+        <button onclick="saveRecord(false)">💾 儲存這筆</button>
+        <button class="sec" onclick="backToScale()">← 回比例尺</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== RECORDS ===== -->
+  <section id="v-list" class="hidden">
+    <div class="card">
+      <h2>紀錄 <span class="muted" id="listCount"></span></h2>
+      <div class="row"><button class="sec" onclick="exportAll()">⬇️ 匯出全部備份(JSON)</button>
+        <button class="sec" onclick="showTrash()">🗑 垃圾桶</button></div>
+      <div id="recs"></div>
+    </div>
+  </section>
+
+  <!-- ===== TRASH ===== -->
+  <section id="v-trash" class="hidden">
+    <div class="card">
+      <h2>🗑 垃圾桶 <span class="muted">(刪除後保留 30 天,可還原)</span></h2>
+      <button class="sec" onclick="show('list')">← 回紀錄</button>
+      <div id="trashList"></div>
+    </div>
+  </section>
+
+  <!-- ===== SETTINGS ===== -->
+  <section id="v-set" class="hidden">
+    <div class="card">
+      <h2>⚙️ 設定</h2>
+      <label>操作員(你的名字)</label><input id="sOp" placeholder="例 林宥廷">
+      <label>隊伍/組別</label><input id="sTeam" placeholder="例 第3組">
+      <label>預設區域</label>
+      <select id="sZone"><option>伸港1</option><option>伸港兩保育區之間</option><option>伸港2</option><option>王功</option><option>漢寶</option></select>
+      <label>方框內側邊長(cm)</label><input id="sFrame" type="number" value="30">
+      <button onclick="saveSettings()">儲存設定</button>
+      <div class="hint">資料只存在你手機(離線),按「匯出備份」可下載成檔案防遺失。雲端上傳為下一版(需後端帳號)。</div>
+      <button class="danger" onclick="reConsent()">重看同意條款</button>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-v="capture" class="on" onclick="show('capture')"><b>📷</b>拍照</button>
+  <button data-v="list" onclick="show('list')"><b>📋</b>紀錄</button>
+  <button data-v="set" onclick="show('set')"><b>⚙️</b>設定</button>
+</nav>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- consent gate -->
+<div id="consent" class="modal hidden"><div class="card">
+  <h2>研究資料蒐集同意</h2>
+  <p style="font-size:14px;line-height:1.6">本 app 為螻蛄蝦(蝦猴)資源調查與 AI 訓練之用,會蒐集:
+  <b>你拍的照片、拍照當下的 GPS、你的顯示名稱/隊伍</b>。用途:科學調查與模型訓練。
+  資料預設只存在你手機,經你或老師上傳後存於研究單位。你可要求刪除。
+  蝦猴精確位置屬保育敏感資訊,不會公開。未滿 18 歲請由師長代為確認家長同意。</p>
+  <label style="display:flex;gap:10px;align-items:flex-start;font-size:15px;color:#EAF4F2">
+    <input type="checkbox" id="agree" style="width:24px;height:24px;flex:0 0 auto;margin-top:2px"> 我已閱讀並同意上述蒐集與使用。</label>
+  <button id="agreeBtn" onclick="acceptConsent()" disabled>同意並開始</button>
+</div></div>
+
+<script src="vendor/jsQR.js"></script>
+<script src="app.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body>
+</html>

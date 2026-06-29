@@ -1,0 +1,16 @@
+{
+  "name": "蝦猴採集",
+  "short_name": "蝦猴採集",
+  "description": "螻蛄蝦(蝦猴)潮間帶樣方採集 — 離線拍照、GPS、比例尺、洞口標註",
+  "lang": "zh-Hant",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c2229",
+  "theme_color": "#0B4F5C",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
