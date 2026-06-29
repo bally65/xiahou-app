@@ -57,8 +57,10 @@
   .modal .card{max-width:520px;max-height:88vh;overflow:auto}
   .typebtns{display:flex;gap:8px;margin-top:8px}.typebtns button{margin:0}
   .typebtns button.shrimp{background:var(--sand);color:#3a2e08}
+  .typebtns button.crab{background:#5a3340;color:#f0b9c8}
   .typebtns button.other{background:#3a4a50;color:#cfe3e0}
   .typebtns button.unsure{background:#4a3a18;color:#f4c87a}
+  .typebtns button{font-size:15px;padding:12px 6px}
   .big{font-size:26px;font-weight:800;color:var(--sand)}
   .cnt{font-size:30px;font-weight:800}
 </style>
@@ -86,7 +88,7 @@
     <div class="card">
       <h2 id="editTitle">② 確認比例尺</h2>
       <div id="stepScale">
-        <div class="hint">依序點方框的 <b>4 個角</b>(任意順序)→ 自動算比例尺(框內邊長 <span id="frameCm">30</span> cm)。掃到 QR 會自動帶格號。</div>
+        <div class="hint">點方框 <b>4 個角</b>(任意順序)→ 自動算比例尺(框內邊長 <span id="frameCm">30</span> cm)。<b>沒框/不需要可略過</b>。掃到 QR 會自動帶格號。</div>
         <div class="stagewrap"><canvas id="stage"></canvas></div>
         <div class="row" style="margin-top:8px">
           <span class="pill" id="gpsPill">GPS…</span>
@@ -94,18 +96,21 @@
           <span class="pill" id="gsdPill">GSD —</span>
         </div>
         <button class="sec" onclick="resetCorners()">↺ 重點角</button>
-        <button id="toLabelBtn" onclick="goLabel()" disabled>下一步:標註洞口 →</button>
+        <button id="toLabelBtn" onclick="goLabel()">下一步:標註洞口(可選)→</button>
+        <button class="zero" onclick="saveRecord(true)">✓ 此格 0 蝦猴,直接存證</button>
       </div>
       <div id="stepLabel" class="hidden">
-        <div class="hint">放大後,<b>點每一個蝦猴洞</b>。先選下方類型,再點圖。點錯點該點可刪。</div>
+        <div class="hint">放大(雙指)後,<b>點每一個蝦猴洞</b>。先選下方類型,再點圖。再點同一點=刪除。</div>
         <div class="typebtns">
           <button class="shrimp" onclick="setType('shrimp')" id="tShrimp">蝦猴 ●</button>
+          <button class="crab" onclick="setType('crab')" id="tCrab">蟹</button>
           <button class="other" onclick="setType('other')" id="tOther">其他</button>
           <button class="unsure" onclick="setType('unsure')" id="tUnsure">不確定</button>
         </div>
         <div class="stagewrap" style="margin-top:8px"><canvas id="stage2"></canvas></div>
-        <div class="row" style="margin-top:8px">
+        <div class="row" style="margin-top:8px;font-size:14px">
           <div>蝦猴 <span class="cnt" id="cShrimp">0</span></div>
+          <div>蟹 <span class="cnt" id="cCrab">0</span></div>
           <div>其他 <span class="cnt" id="cOther">0</span></div>
           <div>不確定 <span class="cnt" id="cUnsure">0</span></div>
         </div>
@@ -114,6 +119,7 @@
         <button onclick="saveRecord(false)">💾 儲存這筆</button>
         <button class="sec" onclick="backToScale()">← 回比例尺</button>
       </div>
+      <div id="errline" class="hidden" style="margin-top:10px;color:#f3a48f;font-size:14px"></div>
     </div>
   </section>
 
