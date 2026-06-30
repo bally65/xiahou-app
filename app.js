@@ -142,7 +142,8 @@ function drawLabel(){ const cv=$('stage2'),c=cv.getContext('2d'); c.drawImage(ca
   cap.points.forEach(p=>{const x=p.x/cap.factor,y=p.y/cap.factor; c.beginPath();c.arc(x,y,6,0,7);
     c.strokeStyle=COL[p.type]||'#fff';c.lineWidth=2;c.stroke();c.beginPath();c.arc(x,y,2,0,7);c.fillStyle=COL[p.type];c.fill();});
   const n=t=>cap.points.filter(p=>p.type===t).length;
-  $('cShrimp').textContent=n('shrimp'); $('cCrab').textContent=n('crab'); $('cOther').textContent=n('other'); $('cUnsure').textContent=n('unsure'); }
+  $('cShrimp').textContent=n('shrimp'); $('cCrab').textContent=n('crab'); $('cOther').textContent=n('other'); $('cUnsure').textContent=n('unsure');
+  if($('cTotal')) $('cTotal').textContent=cap.points.length; }
 let ptrs=new Map(),startDist=0,startTF=null,moved=false,downPt=null;
 const st2=$('stage2');
 st2.addEventListener('pointerdown',e=>{st2.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);moved=false;downPt=[e.clientX,e.clientY];
@@ -172,7 +173,7 @@ async function saveRecord(isZero){
       frame_cm:cap.frame_cm||capFrameCm(), gsd_cm_px:cap.gsd||null, gps:cap.gps||null,
       corners_orig_px:cap.corners.map(([x,y])=>[Math.round(x*cap.factor),Math.round(y*cap.factor)]),
       openings:cap.points.map(p=>({x_px:Math.round(p.x),y_px:Math.round(p.y),type:p.type})),
-      count_shrimp:n('shrimp'), count_crab:n('crab'), count_other:n('other'), count_unsure:n('unsure'),
+      count_shrimp:n('shrimp'), count_crab:n('crab'), count_other:n('other'), count_unsure:n('unsure'), count_total:cap.points.length,
       is_zero:isZero, notes:$('notes').value.trim(),
       img_buf:buf, img_type:'image/jpeg', img_w:cap.origW, img_h:cap.origH,
       deleted:false, exported:false, app:'sbcv-pwa/0.4' };
@@ -193,7 +194,7 @@ async function renderList(){ const recs=(await allRecs()).filter(r=>!r.deleted).
 function recRow(r){ const d=document.createElement('div'); d.className='rec';
   const im=document.createElement('img'); try{im.src=URL.createObjectURL(recBlob(r));}catch(_){ } d.appendChild(im);
   const m=document.createElement('div'); m.className='meta';
-  m.innerHTML=`<b>${r.cell}</b> · 蝦猴 ${r.count_shrimp}　<span class="pill ${r.gsd_cm_px?'ok':'amber'}">${r.gsd_cm_px?r.gsd_cm_px.toFixed(3)+' cm/px':'無比例'}</span><br>
+  m.innerHTML=`<b>${r.cell}</b> · 孔洞 ${r.count_total!=null?r.count_total:(r.count_shrimp+r.count_crab+r.count_other+r.count_unsure)}(蝦猴 ${r.count_shrimp})　<span class="pill ${r.gsd_cm_px?'ok':'amber'}">${r.gsd_cm_px?r.gsd_cm_px.toFixed(3)+' cm/px':'無比例'}</span><br>
     <small>${r.zone} · ${r.substrate} · ${new Date(r.ts).toLocaleString('zh-TW')} ${r.gps?'· GPS✓':'· 無GPS'} ${r.exported?'· 已備份':''}</small>`;
   d.appendChild(m);
   const ex=document.createElement('button'); ex.textContent='⬇️'; ex.className='sec'; ex.style.cssText='width:52px;margin:0'; ex.onclick=()=>exportOne(r.id); d.appendChild(ex);
