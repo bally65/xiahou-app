@@ -66,7 +66,7 @@
 </style>
 </head>
 <body>
-<header>🦐 蝦猴採集 <span class="net" id="net"></span></header>
+<header>🦐 蝦猴採集 <span id="ver" style="font-size:11px;font-weight:600;color:#7fa3a0">v0.4</span> <span class="net" id="net"></span></header>
 <main id="main">
   <!-- ===== CAPTURE ===== -->
   <section id="v-capture">
@@ -88,7 +88,11 @@
     <div class="card">
       <h2 id="editTitle">② 確認比例尺</h2>
       <div id="stepScale">
-        <div class="hint">點方框 <b>4 個角</b>(任意順序)→ 自動算比例尺(框內邊長 <span id="frameCm">30</span> cm)。<b>沒框/不需要可略過</b>。掃到 QR 會自動帶格號。</div>
+        <div class="row" style="align-items:center;margin-bottom:6px">
+          <div style="flex:2"><label style="margin:0">這次的方框內側邊長(cm)</label></div>
+          <input id="capFrame" type="number" inputmode="decimal" style="flex:1;text-align:center" value="30">
+        </div>
+        <div class="hint">點方框 <b>4 個角</b>(任意順序)→ 自動算比例尺。<b>框大小不同就改上面的 cm</b>(避免比例誤差)。沒框可略過。掃到 QR 自動帶格號。</div>
         <div class="stagewrap"><canvas id="stage"></canvas></div>
         <div class="row" style="margin-top:8px">
           <span class="pill" id="gpsPill">GPS…</span>
@@ -191,6 +195,18 @@
 <script src="config.js"></script>
 <script src="vendor/jsQR.js"></script>
 <script src="app.js"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+<script>
+if('serviceWorker' in navigator){
+  var _reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){ if(_reloaded)return; _reloaded=true; location.reload(); });
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    reg.update();
+    if(reg.waiting) reg.waiting.postMessage('skipWaiting');      // new version ready -> activate now
+    reg.addEventListener('updatefound',function(){ var nw=reg.installing; if(!nw)return;
+      nw.addEventListener('statechange',function(){ if(nw.state==='installed'&&navigator.serviceWorker.controller) nw.postMessage('skipWaiting'); }); });
+  }).catch(function(){});
+  setInterval(function(){ navigator.serviceWorker.getRegistration().then(function(r){ r&&r.update(); }); }, 60000);
+}
+</script>
 </body>
 </html>

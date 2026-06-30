@@ -81,8 +81,9 @@ $('file').addEventListener('change', async e=>{
     const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch; cv.getContext('2d').drawImage(src,0,0,cw,ch);
     const jpeg=await new Promise((rs,rj)=>cv.toBlob(b=>b?rs(b):rj(new Error('JPEG 轉檔失敗')),'image/jpeg',0.9));
     const dispW=Math.min(cw,1100), factor=cw/dispW, dispH=Math.round(ch/factor);
-    cap={blob:jpeg, origW:cw, origH:ch, dispW, dispH, factor, _src:cv, gps:null, corners:[], gsd:null, points:[]};
+    cap={blob:jpeg, origW:cw, origH:ch, dispW, dispH, factor, _src:cv, gps:null, corners:[], gsd:null, points:[], frame_cm:parseFloat(S.frame)||30};
     const st=$('stage'); st.width=dispW; st.height=dispH; st.getContext('2d').drawImage(cv,0,0,dispW,dispH);
+    if($('capFrame')) $('capFrame').value = S.frame||30;
     show('edit'); editScaleMode();
     // GPS (non-blocking, never blocks save)
     $('gpsPill').textContent='GPS…'; $('gpsPill').className='pill amber';
@@ -120,11 +121,12 @@ $('stage').addEventListener('pointerdown', ev=>{stDown=[ev.clientX,ev.clientY];}
 function drawStage(){ const cv=$('stage'); if(!cap||!cap._src)return; const c=cv.getContext('2d');
   c.drawImage(cap._src,0,0,cv.width,cv.height); c.fillStyle='#ff3';
   cap.corners.forEach(([x,y],i)=>{c.beginPath();c.arc(x,y,8,0,7);c.fill();c.fillStyle='#000';c.font='bold 13px sans-serif';c.fillText(i+1,x-3,y+4);c.fillStyle='#ff3';}); }
+function capFrameCm(){ return parseFloat($('capFrame')&&$('capFrame').value)||parseFloat(S.frame)||30; }
 function computeGSD(){ const P=cap.corners.map(([x,y])=>[x*cap.factor,y*cap.factor]);
   const d=[]; for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)d.push(Math.hypot(P[i][0]-P[j][0],P[i][1]-P[j][1]));
   d.sort((a,b)=>a-b); const meanSide=(d[0]+d[1]+d[2]+d[3])/4;
-  cap.gsd=(parseFloat(S.frame||30))/meanSide;
-  $('gsdPill').textContent=`GSD ${cap.gsd.toFixed(4)} cm/px`; $('gsdPill').className='pill ok'; }
+  cap.frame_cm=capFrameCm(); cap.gsd=cap.frame_cm/meanSide;
+  $('gsdPill').textContent=`GSD ${cap.gsd.toFixed(4)} cm/px (框 ${cap.frame_cm}cm)`; $('gsdPill').className='pill ok'; }
 
 /* ---------- label: pinch-zoom + tap ---------- */
 let tf={s:1,tx:0,ty:0};
@@ -167,16 +169,19 @@ async function saveRecord(isZero){
     const buf=await cap.blob.arrayBuffer();   // store ArrayBuffer (dodges iOS IDB Blob bug)
     const rec={ id:crypto.randomUUID(), ts:new Date().toISOString(),
       op:S.op||'', operator_line_id:(lineProfile&&lineProfile.userId)||'', team:S.team||'', zone:S.zone||'', cell, substrate:$('substrate').value,
-      frame_cm:parseFloat(S.frame||30), gsd_cm_px:cap.gsd||null, gps:cap.gps||null,
+      frame_cm:cap.frame_cm||capFrameCm(), gsd_cm_px:cap.gsd||null, gps:cap.gps||null,
       corners_orig_px:cap.corners.map(([x,y])=>[Math.round(x*cap.factor),Math.round(y*cap.factor)]),
       openings:cap.points.map(p=>({x_px:Math.round(p.x),y_px:Math.round(p.y),type:p.type})),
       count_shrimp:n('shrimp'), count_crab:n('crab'), count_other:n('other'), count_unsure:n('unsure'),
       is_zero:isZero, notes:$('notes').value.trim(),
       img_buf:buf, img_type:'image/jpeg', img_w:cap.origW, img_h:cap.origH,
-      deleted:false, exported:false, app:'sbcv-pwa/0.2' };
+      deleted:false, exported:false, app:'sbcv-pwa/0.4' };
     await putRec(rec);
+    const back=await getRec(rec.id);                 // write-verify: confirm it really persisted
+    if(!back || !(back.img_buf||back.img)) throw new Error('寫入後讀不到(裝置可能拒絕儲存空間)');
+    const total=(await allRecs()).filter(r=>!r.deleted).length;
     cap=null; $('cell').value=''; $('notes').value='';
-    toast(isZero?'已存(0 蝦猴)✓':'已儲存 ✓'); show('list');
+    toast(`${isZero?'已存(0 蝦猴)':'已儲存'} ✓ 共 ${total} 筆`); show('list');
   }catch(err){ showErr('儲存失敗:'+(err.message||err)+'(請截圖回報)'); }
 }
 
